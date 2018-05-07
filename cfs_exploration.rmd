@@ -1,0 +1,964 @@
+Commodity Flow Survey Exploration by Mike Gysel
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load packages
+# Data visualization
+library(ggplot2)
+# Data Wrangling
+library(dplyr)
+# Pairplot
+library(GGally)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
+# Load the Data
+cfs <- read.csv('data/cfs_2012_pumf_csv.csv')
+# Easier to work with sample
+cfs_sample <- cfs[sample(nrow(cfs), 10000),]
+```
+
+# Summary of 2012 Commodity Flow Survey
+The 2012 Commodity Flow Survey (CFS) is a joint effort by the Bureau of 
+Transportation Statistics and the U.S. Census Bureau, U.S. Department of 
+Commerce. The survey is the primary source of national and state-level data on 
+domestic freight shipments by establishments in mining, manufacturing, whole 
+sale auxiliaries, and selected retail and services trade industries, located in 
+the 50 states and the District of Columbia. The survey produces estimates on 
+the type, origin and destination, value, weight, modes of transportation, 
+distance shipped, and ton-miles of commodities shipped. 
+
+Additional information on the Commodity Flow Survey can be found at 
+https://catalog.data.gov/dataset/commodity-flow-survey
+
+# Univariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots}
+# Data structure
+str(cfs)
+# Summary
+summary(cfs)
+```
+
+There are 4,547,661 observations of  20 variables. 
+
+Some interesting initial findings:
+* The median shipment value is $875 and the mean shipment value is $18,280, 
+which is dramatically higher due to the max shipment value of $521,277,800. 
+What could have been shipped for over half a billion dollars?!!
+* The median shipment weight is 270 pounds and the mean shipment weight is 
+37,587 pounds, which is dramatically higher due to the maximum shipment weight 
+of 277,029,600 pounds!! What could have weighed 277 million pounds?!
+* The median shipment distance is 140 miles and the mean shipment distance is 
+475 miles, with a maximum shipment distance of 6,932 miles. This shows that the 
+majority of shipments were made in the US, with some made abroad, which takes 
+us to
+* 23 times as many shipments were not exported (4,361,940 shipments) as were 
+exported (185,721 shipments).
+
+# Univariate Analysis
+
+## Origin State
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot the number of occurrences of an origin state
+ggplot(data=cfs, aes(x=ORIG_STATE)) + 
+  geom_bar() +
+  scale_x_continuous(breaks=seq(0,60,2))
+
+# Determine origin states with most/least shipments
+count.ORIG_STATE <- arrange(count(cfs, ORIG_STATE), desc(n))
+```
+
+The states with the most outgoing shipments are California, Texas, Ohio, 
+Pennsylvania, and New York. The states with the least outgoing shipments are 
+Alaska, Wyoming, Delaware, New Mexico, and Vermont.
+
+I would like to check out a histogram of the number of shipments for each 
+origin state.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Histogram for number of outgoing shipments from an ORIG_STATE
+ggplot(data=count.ORIG_STATE, aes(x=n)) + 
+  geom_histogram(binwidth=20000) + 
+  scale_x_continuous(breaks=seq(0,400000,50000))
+```
+
+The distribution of number of outgoing shipments from each state is a 
+right-skewed, long tail distribution.
+
+## Destination State
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot the number of occurrences of a destination state
+ggplot(data=cfs, aes(x=DEST_STATE)) + 
+  geom_bar() + 
+  scale_x_continuous(breaks=seq(0,60,2))
+
+# Determine destination states with the most/least shipments
+count.DEST_STATE <- arrange(count(cfs, DEST_STATE), desc(n))
+```
+
+The states with the most incoming shipments are California, Texas, New York, 
+Florida, and Ohio. The states with the least incoming shipments are Rhode 
+Island, Wyoming, Alaska, Vermont, and Delaware.
+
+I would like to check out a histogram of the number of shipments for each 
+destination state.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Histogram for number of outgoing packages from a DEST_STATE
+ggplot(data=count.DEST_STATE, aes(x=n)) + 
+  geom_histogram(binwidth=15000) + 
+  scale_x_continuous(breaks=seq(0,400000,50000))
+```
+
+The distribution of number of incoming shipments to each state, similar to outgoing shipments from each state, is a right-skewed, long tail distribution.
+
+## Metro Area
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine the origin metro areas with the most shipments
+count.ORIG_MA <- arrange(count(cfs, ORIG_MA), desc(n))
+
+# Determine the destination metro areas with the most shipments
+count.DEST_MA <- arrange(count(cfs, DEST_MA), desc(n))
+
+count.ORIG_MA
+count.DEST_MA
+```
+
+The top 5 origin and destination metro areas with the most outgoing/incoming 
+shipments are the same: New York-Newark, Los Angeles-Long Beach, 
+Chicago-Naperville, Boston-Worcester-Providence, and 
+Philadelphia-Reading-Camden.
+Note: MA 99999 represents the remainder of numerous different areas, and was 
+not counted here. 
+
+I would like to check out a histogram of the number of shipments for each 
+origin and destination metro area.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Histogram for number of outgoing shipments from a ORIG_MA
+ggplot(data=count.ORIG_MA, aes(x=n)) + 
+  geom_histogram(binwidth=2000) + 
+  scale_x_continuous(lim=c(0,150000))
+
+# Histogram for number of outgoing shipments from a DEST_MA
+ggplot(data=count.DEST_MA, aes(x=n)) + 
+  geom_histogram(binwidth=5000) + 
+  scale_x_continuous(lim=c(0,150000))
+```
+
+The distribution of number of incoming shipments to each metro area and the 
+distribution of number of outgoing shipments from each metro area both display
+a right-skewed, long tail distribution. This is what we would expect, given the
+distribution of shipment quantity for each state.
+
+## NAICS (North American Industry Classification System) Codes
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine the NAICS industry classifications with the most shipments
+count.NAICS <- arrange(count(cfs, NAICS), desc(n))
+count.NAICS
+```
+
+The industries with the most shipments are the Chemical Manufacturing Sector;
+Aerospace Sector; Machinery, Equipment, and Supplies Merchant Wholesalers; Food 
+Manufacturing; and Grocery and Related Product Merchant Wholesalers. It appears 
+America likes to ship chemicals, machines, and food!!
+
+I would also like to view the distribution of shipments per industry.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Histogram of shipments in each industry
+ggplot(data=count.NAICS, aes(x=n)) + 
+  geom_histogram(binwidth=5000)
+```
+
+The distribution of shipments for each industry appears relatively symmetric, 
+with a bit of a tail to the right.
+
+## SCTG (Standard Classification of Transported Goods) Codes
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine the SCTG with the most shipments
+count.SCTG <- arrange(count(cfs, SCTG), desc(n))
+count.SCTG
+```
+
+The industries with the most shipments are Electronic and Other Electrical 
+Equipment and Components, and Office Equipment; Plastics and Rubber; 
+Mixed Freight; Machinery; and Miscellaneous Manufactured Products. These 
+largely align with NAICS Codes, with Plastics and Rubber aligning with the 
+Chemical Manufacturing Sector, and both Electrical Equipment and Machinery
+aligning with Machinery.
+
+## Quarter
+
+```{r}
+# Determine the number of shipments for each quarter
+arrange(count(cfs, QUARTER), desc(n))
+```
+
+The distribution of shipments is relatively even, with slightly fewer shipments
+each subsequent quarter.
+
+## Mode
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine the mode with the most shipments
+count.MODE <- arrange(count(cfs, MODE), desc(n))
+
+# Bar graph of each mode
+ggplot(data=cfs, aes(x=MODE)) + 
+  geom_bar()
+```
+
+The three modes of transit for each shipment with by far the most shipments
+are Private Truck; For-hire Truck; and Parcel, USPS, or Courier. This makes me 
+wonder which modes are typically used for different attributes, such as 
+distance, shipment value, shipment type, etc.
+
+## Shipment Value
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Modify cfs$SHIPMT_VALUE numeric
+cfs$SHIPMT_VALUE <- as.numeric(cfs$SHIPMT_VALUE)
+
+# Plot a histogram of shipment value
+ggplot(data=cfs, aes(SHIPMT_VALUE)) + 
+  geom_histogram(binwidth=1000) + 
+  scale_x_continuous(lim=c(0,10000000)) +
+  scale_y_continuous(lim=c(0,100))
+```
+
+The distribution of shipment value is a right-skewed, long tail distribution. 
+This distribution makes me want to use a logarithmic scale on the x-axis.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot a histogram of shipment value, x-axis logarithmic
+ggplot(data=cfs, aes(SHIPMT_VALUE)) + 
+  geom_histogram() + 
+  scale_x_log10()
+```
+
+As expected, the logarithmic transformed shipment value distribution is 
+relatively symmetric.
+
+## Shipment Weight
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Modify cfs$SHIPMT_WGHT numeric
+cfs$SHIPMT_WGHT <- as.numeric(cfs$SHIPMT_WGHT)
+
+# Plot a histogram of shipment value
+ggplot(data=cfs, aes(SHIPMT_WGHT)) + 
+  geom_histogram(binwidth=1000) + 
+  scale_x_continuous(lim=c(0,10000000)) +
+  scale_y_continuous(lim=c(0,100))
+```
+
+The distribution of shipment weight is right-skewed with a peak less than 100 
+pounds, and a secondary peak around 3 million pounds. This distribution makes 
+me want to use a logarithmic scale on the x-axis. 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot a histogram of shipment weight, x-axis logarithmic
+ggplot(data=cfs, aes(SHIPMT_WGHT)) + 
+  geom_histogram(binwidth=.2) + 
+  scale_x_log10()
+```
+
+This logarithmic transformed shipment value distribution looks relatively flat 
+with a low and high peak.
+
+## Shipment Distance Routed
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Modify cfs$SHIPMT_DIST_ROUTED numeric
+cfs$SHIPMT_DIST_ROUTED <- as.numeric(cfs$SHIPMT_DIST_ROUTED)
+
+# Plot a histogram of shipment distance
+ggplot(data=cfs, aes(SHIPMT_DIST_ROUTED)) + 
+  geom_histogram(binwidth=100)
+```
+
+The distribution of shipment distance routed is a right-skewed, long tail 
+distribution. This distribution makes me want to use a logarithmic scale on the 
+x-axis.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data=cfs, aes(SHIPMT_DIST_ROUTED)) + 
+  geom_histogram(binwidth=.05) + 
+  scale_x_log10()
+```
+
+Unexpectedly, the logarithmic distribution is bimodal, with a peak around 10 
+pounds and a larger peak around 1,000 pounds. This makes me wonder what 
+different attributes these two peaks have.
+
+## Export Country
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Look at the exports by category
+# Bar Chart
+ggplot(data=cfs, aes(x=EXPORT_CNTRY)) +
+  geom_bar()
+# Table
+arrange(count(cfs, EXPORT_CNTRY), desc(n))
+```
+As expected, most (95.9%) shipments were not exports. Of the shipments that 
+were exports, 29.4% went to Canada, 10.4% went to Mexico, and 60.2% wentto 
+other countries.
+
+## Hazmat
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Table of distribution of hazardous vs. non-hazardous shipments
+count(cfs, HAZMAT)
+```
+
+93.3% of shipments are Not Hazmat (good to hear), 2.9% are Class 3.0 Hazmat 
+(flammable liquids), and 3.7% are Other Hazmat.
+
+### What is the structure of your dataset?
+
+There are 4,547,661 shipments with 20 characteristics (shipment identifier, 
+origin state, origin metro area, origin CFS area, destination state, 
+destination metro area, destination CFS area, NAICS industry classification, 
+quarter shipment occurred, SCTG commodity code, mode of transportation, 
+shipment value, shipment weight, great circle distance, routed distance, 
+temperature control, export shipment, export destination, hazardous material, 
+and weighting factor).
+
+### What is/are the main feature(s) of interest in your dataset?
+
+Some primary inquiries I have are:
+* What shipments weigh and cost so much?
+* How does mode of transportation vary with shipment distance and weight?
+* What are the differences in great circle distance and routed distance. How do 
+these vary as distance increases? Does the ratio of great circle distance to 
+routed distance increase with exports?
+* Shipment weights peak around 10 pounds and 1,000 pounds. What are the 
+attributes of these two peaks?
+* What are attributes of packages we send abroad?
+
+### What other features in the dataset do you think will help support your \
+investigation into your feature(s) of interest?
+
+I think most of the features can potentially be useful with this broad range of 
+inquiries above. 
+
+### Did you create any new variables from existing variables in the dataset?
+
+I counted the occurrences of different categorical variables, but did not 
+create any new ones.
+
+### Of the features you investigated, were there any unusual distributions? \
+Did you perform any operations on the data to tidy, adjust, or change the form \
+of the data? If so, why did you do this?
+
+Per above, the distribution of shipment weights, with peaks around 10 pounds 
+and 1,000 pounds is interesting.
+
+# Bivariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots}
+# Subset the data for a pairplot, the only relevant rows are
+# QUARTER (9), SHIPMT_VALUE (12) SHIPMT_WGHT (13), SHIPMT_DIST_ROUTED (15), 
+# TEMP_CNTL_YN (16) EXPORT_YN (17), HAZMAT (19)  
+cfs_pairplot <- cfs_sample %>% select(QUARTER, SHIPMT_VALUE, SHIPMT_WGHT, 
+                                      SHIPMT_DIST_ROUTED, TEMP_CNTL_YN, 
+                                      EXPORT_YN, HAZMAT)
+ggpairs(cfs_pairplot)
+```
+
+Most variables show no relation, but some interesting patterns:
+* Weak correlation between shipment weight and shipment value.
+* Temperature controlled shipments are of greater value and weight on average.
+* Export shipments are of greater value and weight on average.
+* Hazmat shipment categories have different average values and weights.
+* Distance routed differs by temperature control, export, and hazmat.
+
+## Shipment Weights - What shipments weigh so much?
+
+### Top 1% of Shipments by Weight
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine top 1% of shipment weights
+summary(subset(cfs, SHIPMT_WGHT>quantile(SHIPMT_WGHT, 0.99)))
+```
+Some initial interesting findings:
+* Most are not temperature controlled
+* Most are not exported
+* Most are not Hazmat
+
+### What NAICS and SCTG Codes have shipments with the highest average weights?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# NAICS
+
+# Determine shipment weight per shipment, average by NAICS Codes
+arrange(cfs %>% group_by(NAICS) %>% summarise(avg=mean(SHIPMT_WGHT)), desc(avg))
+
+# Determine the shipment weight per shipment, average by SCTG Codes
+arrange(cfs %>% group_by(SCTG) %>% summarise(avg=mean(SHIPMT_WGHT)), desc(avg))
+```
+Some observations related to shipment weight:
+* The average shipment weight for Mining and Quarrying (except oil and gas) at 
+588,041 pounds, Farm Product Raw Material Merchant Wholesaler at 403,757 pounds, 
+and Petroleum and Coal Product Manufacturing at 354,552 pounds far exceed the 
+shipment weights for any other NAICS Codes. 
+* The average shipment weight for Coal at 5,596,597 pounds and Metallic Ores 
+and Concentrates at 1,683,167 pounds far exceed any other SCTG Codes.
+
+### What transportation modes are used for shipments with the highest weights?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# What transportation mode do the top shipments by weight use?
+
+# Top 1%
+cfs.WEIGHT_1 <- 
+  arrange(count(arrange(subset(cfs, 
+                               SHIPMT_WGHT>quantile(SHIPMT_WGHT, 0.99)), 
+                        SHIPMT_WGHT), MODE), desc(n))
+# Find percentage of each mode
+cfs.WEIGHT_1$perc <- cfs.WEIGHT_1$n/sum(cfs.WEIGHT_1$n)
+
+# Top 0.1%
+cfs.WEIGHT_P1 <- 
+  arrange(count(subset(subset(cfs, SHIPMT_WGHT>quantile(SHIPMT_WGHT, 0.99)), SHIPMT_WGHT>quantile(SHIPMT_WGHT, 0.9)), MODE), desc(n))
+
+# Find percentage of each mode
+cfs.WEIGHT_P1$perc <- cfs.WEIGHT_P1$n/sum(cfs.WEIGHT_P1$n)
+
+# Display
+cfs.WEIGHT_1$perc
+cfs.WEIGHT_P1$perc
+```
+
+Some observations related to shipment weight and transportation mode:
+* For shipments in the top 1% of weight, 55% are transported by rail and 11% 
+are transported by truck and rail.
+* For shipments in the top 0.1% of weight, 54% are transported by rail, 16% are 
+transported by pipeline, and 10% are transported by Inland Water.
+
+This makes me wonder how heavy export shipments are transported.
+
+### Are shipment weight and distance correlated?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Are shipment weight and shipment distance correlated?
+ggplot(data=cfs_sample, aes(x=SHIPMT_WGHT, y=SHIPMT_DIST_ROUTED)) +
+  geom_point(size=0.1, alpha=0.05) + 
+  scale_x_continuous(lim=c(0,10000))
+
+# Try log/quadratic models on the subsetted data
+cfs_lm <- subset(cfs, SHIPMT_WGHT<10000)
+
+lin.model<- lm(cfs_lm$SHIPMT_DIST_ROUTED ~ cfs_lm$SHIPMT_WGHT)
+summary(lin.model)
+
+log.model <- lm(cfs_lm$SHIPMT_DIST_ROUTED ~ cfs_lm$SHIPMT_WGHT + (log(cfs_lm$SHIPMT_WGHT)))
+summary(log.model)
+
+quadratic.model <- lm(cfs_lm$SHIPMT_DIST_ROUTED ~ cfs_lm$SHIPMT_WGHT + (cfs_lm$SHIPMT_WGHT^2))
+summary(quadratic.model)
+```
+
+It appears there is an exponential relationship with shipment weight and routed
+shipment distance, when removing outliers above a 10,000 pound shipment weight. 
+The linear, exponential, and quadratic models however, with very low 
+correlation coefficients, say otherwise.
+
+### Are shipment weight and value correlated?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot shipment weight and shipment value
+ggplot(data=cfs_sample, aes(x=SHIPMT_WGHT, y=SHIPMT_VALUE)) +
+  geom_point(size=.1, alpha=0.5) + 
+  scale_x_continuous(lim=c(0,100000)) + 
+  scale_y_continuous(lim=c(0,1000000))
+
+# Linear model of shipment weight and value
+linear.model <- lm(cfs$SHIPMT_VALUE ~ cfs$SHIPMT_WGHT)
+summary(linear.model)
+```
+The bulk of the data does not show much of a correlation between shipment 
+weight and value. The R-Squared value of only 0.01 supports this. This is 
+surprising, as I would have expected very heavy shipments to be worth a lot 
+more than very light shipments.
+
+### What is the median/average shipment weight for different exports?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cfs.WEIGHT_EXPORT <- cfs %>% 
+  group_by(EXPORT_CNTRY) %>% 
+  summarise(median=median(SHIPMT_WGHT), avg=mean(SHIPMT_WGHT))
+cfs.WEIGHT_EXPORT$median_perc <- cfs.WEIGHT_EXPORT$median/sum(cfs.WEIGHT_EXPORT$median)
+cfs.WEIGHT_EXPORT$avg_perc <- cfs.WEIGHT_EXPORT$avg/sum(cfs.WEIGHT_EXPORT$avg)
+cfs.WEIGHT_EXPORT$avg_perc
+```
+
+The median exports weight to Mexico dramatically exceeds the median export
+weights anywhere else. What is being exported to Mexico?
+
+```{r}
+arrange(count(subset(cfs, EXPORT_CNTRY=='M'), NAICS), desc(n))
+```
+
+The NAICS Codes with the most shipments to Mexico are Fabricated Metal Product 
+Manufacturing, Chemical Manufacturing, Transportation Equipment Manufacturing, 
+Plastics and Rubber Products Manufacturing, and Machinery Manufacturing.
+
+## Shipment Values - What shipments cost so much?
+
+### Top 1% of Shipments by Value
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine top 1% of shipments by cost
+summary(subset(cfs, SHIPMT_VALUE>quantile(SHIPMT_VALUE,0.99)))
+```
+
+Some initial interesting findings:
+* Most are not temperature controlled
+* Most are not exported
+* Most are not Hazmat
+
+### What NAICS and SCTG Codes have shipments with the highest average values?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# NAICS
+
+# Determine shipment value per shipment, average by NAICS Codes
+arrange(cfs %>% 
+          group_by(NAICS) %>% 
+          summarise(avg=mean(SHIPMT_VALUE)), desc(avg))
+
+# Determine shipment value per shipment, average by 
+arrange(cfs %>% 
+          group_by(SCTG) %>% 
+          summarise(avg=mean(SHIPMT_VALUE)), desc(avg))
+```
+
+Some observations related to shipment value:
+* The average shipment value for Transportation Equipment Manufacturing at 
+$192,388, Petroleum and Coal Product Manufacturing at $138,415, and Farm Product 
+Raw Material Merchant Wholesalers at $81,859 far exceed the average shipment 
+values for any other NAICS Code.
+* The average shipment value for Transportation Equipment, not esewhere 
+classified at $355,346; Metallic Ores and Concentrates at $145,027; and 
+Gasoline, Aviation Turbine Fuel, and Ethanol (includes Kerosene, and Fuel 
+Alcohols) have the greatest average shipment values among SCTG Codes.
+It appears transportation shipments cost a lot!
+
+### What transportation modes are used for shipments with the highest values?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# What transportation mode do the top shipments by value use?
+
+# Top 1%
+cfs.VALUE_1 <- 
+  arrange(count(arrange(subset(cfs, 
+                               SHIPMT_VALUE>quantile(SHIPMT_VALUE, 0.99)), 
+                        SHIPMT_VALUE), MODE), desc(n))
+# Find percentage of each mode
+cfs.VALUE_1$perc <- cfs.VALUE_1$n/sum(cfs.VALUE_1$n)
+
+# Top 0.1%
+cfs.VALUE_P1 <- 
+  arrange(count(subset(subset(cfs, SHIPMT_VALUE>quantile(SHIPMT_VALUE, 0.99)), SHIPMT_VALUE>quantile(SHIPMT_VALUE, 0.9)), MODE), desc(n))
+
+# Find percentage of each mode
+cfs.VALUE_P1$perc <- cfs.VALUE_P1$n/sum(cfs.VALUE_P1$n)
+
+# Display
+cfs.VALUE_1$perc
+cfs.VALUE_P1$perc
+```
+
+Some observations related to shipment value and transportation mode:
+* For shipments in the top 1% of value, 56% are transported by For-hire Truck, 
+11% are transported by Rail, and another 11% are transported by Private Truck.
+* For shipments in the top 0.1% of value, 41% are transported by For-Hire Truck 
+and 22% are transported by Pipeline.
+
+### What is the median/average shipment value for different exports?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cfs.VALUE_EXPORT <- cfs %>% 
+  group_by(EXPORT_CNTRY) %>% 
+  summarise(median=median(SHIPMT_VALUE), avg=mean(SHIPMT_VALUE))
+
+cfs.VALUE_EXPORT$median_perc <- 
+  cfs.VALUE_EXPORT$median/sum(cfs.VALUE_EXPORT$median)
+cfs.VALUE_EXPORT$avg_perc <- cfs.VALUE_EXPORT$avg/sum(cfs.VALUE_EXPORT$avg)
+
+cfs.VALUE_EXPORT
+```
+
+The median exports value to each country is relatively similar, but the mean
+exports value to Other countries (not Mexico or Canada) is significantly higher
+than other exports. What NAICS/SCTG Codes are being exported to Other Countries, 
+for exports with the highest values?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Find exports to Other countries with top 1% of Shipment values
+cfs.VALUE_EXPORT_O1 <- 
+  subset(cfs, EXPORT_CNTRY == 'O' & SHIPMT_VALUE>quantile(SHIPMT_VALUE, 0.99))
+
+# NAICS
+arrange(subset(cfs, EXPORT_CNTRY == 'O') %>% 
+          group_by(NAICS) %>% 
+          summarise(avg=mean(SHIPMT_VALUE)), desc(avg))
+
+# SCTG
+arrange(subset(cfs, EXPORT_CNTRY == 'O') %>% 
+          group_by(SCTG) %>% 
+          summarise(avg=mean(SHIPMT_VALUE)), desc(avg))
+```
+
+The industries with the most value shipped to Other countries are:
+* NAICS Codes: Farm Product Raw Material Merchant Wholesalers, Transportation 
+Equipment Manufacturing, and Petroleum and Coal Manufacturing.
+* SCTG Categories: Fuel Oils (includes Diesel, Bunker C, and Biodiesel); 
+Gasoline, Aviation Turbine Fuel, and Ethanol (includes Kerosene, and Fuel 
+Alcohols); and Cereal Grains (includes seed).
+
+The industries with the most value being shipped, regardless of how the data is 
+subset, appear to all be related to Agriculture, Transportation, and Energy.
+
+## What mode of transit is used for different distances?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine median/mean distance for each mode of transit
+cfs.MODE_DIST <- cfs %>% group_by(MODE) %>% summarise(median=median(SHIPMT_DIST_ROUTED), mean=mean(SHIPMT_DIST_ROUTED))
+
+# Graph mean distance vs. mode of transit
+ggplot(data=cfs.MODE_DIST, aes(x=MODE, y=mean)) +
+  geom_col() + 
+  scale_x_continuous(breaks=seq(0,110,2))
+
+# Graph median distance vs. mode of transit
+ggplot(data=cfs.MODE_DIST, aes(x=MODE, y=median)) +
+  geom_col() + 
+  scale_x_continuous(breaks=seq(0,110,2))
+```
+
+Air (incl truck & air), Truck and rail, and Truck and water are the three modes 
+of transit with the highest mean shipment distance. Air (incl truck & air), 
+and Truck and rail were the modes of transit with the highest median shipment 
+distance.
+
+## What are the differences in great circle distance and routed distance.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine ratio of great circle distance to routed distance
+cfs$dist_ratio <- cfs$SHIPMT_DIST_ROUTED/cfs$SHIPMT_DIST_GC
+
+# Summary of dist_ratio
+summary(cfs$dist_ratio)
+```
+
+The median and mean ratio between great circle distance and routed distance are 
+1.2128 and 1.3955, respectively.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot the dist_ratio and great circle distance
+ggplot(data=cfs, aes(x=SHIPMT_DIST_GC, y=dist_ratio)) +
+  geom_point()
+
+# Try log/quadratic models on the subsetted data
+lin.model<- lm(cfs$dist_ratio ~ cfs$SHIPMT_DIST_GC)
+summary(lin.model)
+
+log.model <- lm(cfs$dist_ratio ~ cfs$SHIPMT_DIST_GC + (log(cfs$SHIPMT_DIST_GC)))
+summary(log.model)
+
+quadratic.model <- lm(cfs$dist_ratio ~ cfs$SHIPMT_DIST_GC + (cfs$SHIPMT_DIST_GC^2))
+summary(quadratic.model)
+```
+
+It appears there is an exponential relationship with  great circle
+shipment distance and distance ratio. The linear, exponential, and quadratic 
+models however, each with low correlation coefficients, say otherwise.
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. How did the feature(s) of interest vary with other features in \
+the dataset?
+
+There are few correlations between quantitative variables in the dataset, but 
+the most interesting findings are:
+* The shipments with the most weight and value tend to be in the agriculture, 
+transportation, and energy industries.
+* The heaviest shipments are transported mainly by rail, while the average 
+shipments are transported mainly by road.
+* Air, water, and rail are the modes of transit used for the longest shipment 
+distances.
+* The average weight of shipments exported to Mexico far exceed shipments
+exported elsewhere; the average value of shipments exported to other countries
+far exceed shipments exported to Mexico or Canada.
+
+### What was the strongest relationship you found?
+
+The correlation coefficient between shipment weight and shipment value was
+0.33, per the pairplot.
+
+# Multivariate Plots Section
+
+## Shipment distance routed had a peak around 10 miles and a peak around 1000 \
+miles. What are the different attributes of these peaks?
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Subset the data between (0,50) and (100,2000)
+cfs.low_dist <- subset(cfs, SHIPMT_DIST_ROUTED<50) 
+cfs.high_dist <- subset(cfs, SHIPMT_DIST_ROUTED>1000 & SHIPMT_DIST_ROUTED<2000)
+
+# Look at summaries of first/second peaks
+summary(cfs.low_dist)
+summary(cfs.high_dist)
+```
+
+The low and  high peak for shipment distances appear to differ in shipment 
+weight and shipment value.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create df of shipment weight counts for low_distance peak
+cfs.low_dist_wght <- count(cfs.low_dist, SHIPMT_WGHT)
+cfs.low_dist_wght$category <- 'low_dist'
+# Create df of shipment weight counts for high_distance peak
+cfs.high_dist_wght <- count(cfs.high_dist, SHIPMT_WGHT)
+cfs.high_dist_wght$category <- 'high_dist'
+# Combine low_dist and high_dist df's
+cfs.dist_wght <- rbind(cfs.low_dist_wght, cfs.high_dist_wght)
+
+# Histogram of shipment weight for the low and high distance peaks
+ggplot(data=cfs.dist_wght, aes(x=SHIPMT_WGHT)) +
+  geom_histogram(aes(color=category)) +
+  scale_x_continuous(lim=c(0,300000))
+```
+
+The distribution of shipment weight for the low-distance (0 to 50 miles) and 
+high-distance (1,000 to 2,000 miles) shipments appears to be very similar. It 
+seems like this graph would be better if the count were a proportion of total 
+count for each distance category, as this would account for the total number of 
+shipments.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Determine ratio of count/total count
+cfs.low_dist_wght$ratio <- cfs.low_dist_wght$n/sum(cfs.low_dist_wght$n) 
+cfs.high_dist_wght$ratio <- cfs.high_dist_wght$n/sum(cfs.high_dist_wght$n)
+# Combine low_dist and high_dist df's
+cfs.dist_wght <- rbind(cfs.low_dist_wght, cfs.high_dist_wght)
+
+# Line graph of shipment weight for the low and high distance peaks, 
+# low shipment weight
+ggplot(data=cfs.dist_wght, aes(x=SHIPMT_WGHT, y=ratio)) +
+  geom_line(aes(color=category)) +
+  scale_x_continuous(lim=c(0,50)) + 
+  scale_y_continuous(lim=c(0,0.06))
+
+# Line graph of shipment weight for the low and high distance peaks, 
+# medium shipment weight
+ggplot(data=cfs.dist_wght, aes(x=SHIPMT_WGHT, y=ratio)) +
+  geom_line(aes(color=category)) +
+  scale_x_continuous(lim=c(50,100)) + 
+  scale_y_continuous(lim=c(0,0.004))
+
+# Line graph of shipment weight for the low and high distance peaks,
+# high shipment weight
+ggplot(data=cfs.dist_wght, aes(x=SHIPMT_WGHT, y=ratio)) +
+  geom_line(aes(color=category)) +
+  scale_x_continuous(lim=c(100,5000)) + 
+  scale_y_continuous(lim=c(0,0.0003))
+```
+
+These three line graphs show that a higher proportion of high distance 
+shipments have low shipment weights. At approximately 50 pound shipment weight,
+the proportion of low distance shipments surpasses that of high distance
+shipments.
+
+## dist_ratio for exports and non-exports
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot the routed distance vs. dist_ratio (great circle distance/routed 
+# distance) for non-exports and different types of exports
+ggplot(data=cfs, aes(x=SHIPMT_DIST_GC, y=dist_ratio)) +
+  geom_line(aes(color=cfs$EXPORT_CNTRY)) +
+  scale_x_continuous(lim=c(0,100))
+```
+
+The patterns of distance ratio behave pretty erratically. The only patterns
+that can be observed are the ratio decreasing as distance increases. The 
+distance ratio for non Mexico/Canada exports also appear to be the highest 
+of any group.
+
+## How does mode of transit change with shipment distance?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Change MODE column from int to factor
+cfs$MODE <- as.factor(cfs$MODE)
+
+# Plot the percentages of packages transported via different modes,
+# by shipment distance
+ggplot(data=cfs, aes(x=SHIPMT_DIST_ROUTED)) +
+  geom_freqpoly(aes(y=..count../sum(..count..), color=MODE)) + 
+  scale_x_continuous(breaks=seq(0,6000,500), lim=c(0,6000)) +
+  scale_y_continuous(labels=scales::percent)
+```
+
+Now subset the data to only include the predominant modes of transport.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot the percentages of packages transported by predominant modes
+ggplot(data=subset(cfs, MODE==04 | MODE==05 | MODE==14), aes(x=SHIPMT_DIST_ROUTED)) +
+  geom_freqpoly(aes(y=(..count..)/sum(..count..), color=MODE)) + 
+  scale_x_continuous(breaks=seq(0,6000,500), lim=c(0,6000))
+```
+
+For-hire and Private Truck have the highest percentages of shipments until
+about 1,000 miles, where Parcel, USPS, or courier has the highest percentage of 
+shipments.
+
+## How does mode of transit change with shipment weight?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot the percentages of packages transported via different modes, 
+# by shipment weight
+ggplot(data=cfs, aes(x=SHIPMT_WGHT)) +
+  geom_freqpoly(aes(y=..count../sum(..count..), color=MODE)) + 
+  scale_x_continuous(breaks=seq(0,6000,500), lim=c(500,3000))
+```
+
+Now subset the data to only include the predominany modes of transport.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Plot the percentages of packages transported by For-Hire Truck (04); 
+# Private Truck (05); Air (including truck and water) (11); or Parcel, USPS, or
+# courier (14)
+ggplot(data=subset(cfs, MODE==04 | MODE==5 | MODE==11 | MODE==14), aes(x=SHIPMT_WGHT)) +
+  geom_freqpoly(aes(y=..count../sum(..count..), color=MODE)) + 
+  scale_x_continuous(breaks=seq(0,6000,200), lim=c(0,2000))
+```
+
+Parcel, USPS, or Courier has the highest percentage of shipments up to about 
+70 pounds, and then falls precipitously to practically none of the shipments. 
+For-Hire Truck and Private Truck have the highest percentage of shipments that
+weigh greater than 70 pounds. Air Travel has some packages up to about 70
+pounds, and then falls to a very small percentage of packages.
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the \
+investigation. Were there features that strengthened each other in terms of \
+looking at your feature(s) of interest?
+
+The main findings relate to the mode of transport used:
+* Shipment Distance: For-hire and Private Truck have the highest percentages of 
+shipments up about 1,000 miles, where Parcel, USPS, or courier has the highest 
+percentage of shipments.
+* Shipment Weight: Parcel, USPS, or Courier has the highest percentage of 
+shipments up to about 70 pounds, and then falls precipitously to practically 
+none of the shipments. For-Hire Truck and Private Truck have the highest 
+percentage of shipments that weighh greater than 70 pounds. Air Travel has some 
+packages up to about 70 pounds, and then falls to a very small percentage of 
+packages.
+
+### Were there any interesting or surprising interactions between features?
+I was surprised the ratio between great circle distance and routed distance
+behaved so erratically with exports. This might relate to the location where
+shipments can legally enter each country.
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_One}
+# Plot a histogram of shipment value
+ggplot(data=cfs, aes(SHIPMT_VALUE)) + 
+  geom_histogram(binwidth=1000) + 
+  scale_x_continuous(lim=c(0,10000000), breaks=seq(0,10000000,1000000)) +
+  scale_y_continuous(lim=c(0,100)) +
+  labs(title='Distribution of Shipment Value', x='Shipment Value ($)', y='Count')
+
+head(arrange(cfs, desc(SHIPMT_VALUE)), 1)
+```
+
+### Description One
+The distribution of shipment value is a right-skewed long-tailed distribution
+with the majority of shipments falling below $1,000. The maximum valued shipment
+of $521,277,800  was a 91,990 pound 'Transportation Equipment Manufacturing' 
+shipment delivered 7 miles by Air from Dallas-Fortworth to Dallas-Fortworth. 
+
+### Plot Two
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Two}
+# Plot the percentages of packages transported by predominant modes
+ggplot(data=subset(cfs, MODE==04 | MODE==05 | MODE==14), aes(x=SHIPMT_DIST_ROUTED)) +
+  geom_freqpoly(aes(y=(..count..)/sum(..count..), color=MODE)) + 
+  scale_x_continuous(breaks=seq(0,6000,500), lim=c(0,6000), ) +
+  labs(
+    title='Shipment Distance vs. Percentage of Shipments by Predominant Modes',
+    x='Shipment Distance (Miles)',
+    y='Percentage of Shipments') +
+  scale_color_hue(name='Mode of Transport',
+                  labels = c('For-hire Truck', 
+                             'Private Truck', 
+                             'Parcel, USPS, or Courier'))
+```
+
+### Description Two
+For-hire and Private Truck have the highest percentages of shipments for 
+shipment distances up to about 1,000 miles, where Parcel, USPS, or courier has 
+the highest percentage of shipments.
+
+### Plot Three
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Three}
+# Plot the percentages of packages transported by For-Hire Truck (04); 
+# Private Truck (05); Air (including truck and water) (11); or Parcel, USPS, or
+# courier (14)
+ggplot(data=subset(cfs, MODE==04 | MODE==5 | MODE==11 | MODE==14), aes(x=SHIPMT_WGHT)) +
+  geom_freqpoly(aes(y=..count../sum(..count..), color=MODE)) + 
+  scale_x_continuous(breaks=seq(0,6000,200), lim=c(0,2000)) + 
+  labs(
+    title='Shipment Weight vs. Percentage of Shipments by Predominant Modes',
+    x='Shipment Weight (Pounds)',
+    y='Percentage of Shipments') +
+  scale_color_hue(name='Mode of Transport',
+                  labels = c('For-hire Truck', 
+                           'Private Truck', 
+                           'Air (incl truck & air',
+                           'Parcel, USPS, or Courier'))
+```
+
+### Description Three
+Parcel, USPS, or Courier has the highest percentage of shipments up to about 
+70 pounds, and then falls precipitously to practically none of the shipments. 
+For-Hire Truck and Private Truck have the highest percentage of shipments that
+weigh greater than 70 pounds. Air Travel has a low percentage of
+packages up to about 70 pounds, and then falls to a very small percentage of 
+packages.
+
+------
+
+# Reflection
+
+The main conclusions drawn from the exploration of the Commodity Flow Survey
+dataset are:
+* The shipments with the most weight and value tend to be in the agriculture, 
+transportation, and energy industries.
+* The heaviest shipments are transported mainly by rail, while the average 
+shipments are transported mainly by road.
+* Air, water, and rail are the modes of transit used for the longest shipment 
+distances.
+* For-hire and Private Truck have the highest percentages of 
+shipments up about 1,000 miles, where Parcel, USPS, or courier has the highest 
+percentage of shipments.
+* Parcel, USPS, or Courier has the highest percentage of 
+shipments up to about 70 pounds, and then falls precipitously to practically 
+none of the shipments. For-Hire Truck and Private Truck have the highest 
+percentage of shipments that weighh greater than 70 pounds. Air Travel has some 
+packages up to about 70 pounds, and then falls to a very small percentage of 
+packages.
+
+Some challenges with the analysis relate to the large size (4,547,661 
+observations). As a result of the size, a 10,000 observation sample was used
+to explore different resource-heavy plots, such as the pairplot.
+
+I would like to further explore different regressions that could be conducted
+with different variables in the dataset. Can mode of transit be predicted by
+any set of variables?
