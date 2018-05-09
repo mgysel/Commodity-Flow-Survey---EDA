@@ -25,14 +25,12 @@ shipments are transported mainly by road.
 * Air, water, and rail are the modes of transit used for the longest shipment 
 distances.
 * For-hire and Private Truck have the highest percentages of 
-shipments up about 1,000 miles, where Parcel, USPS, or courier has the highest 
-percentage of shipments.
+shipments up to about 1,000 miles. Parcel, USPS, or courier has the highest 
+percentage of shipments greater than 1,000 miles.
 * Parcel, USPS, or Courier has the highest percentage of 
 shipments up to about 70 pounds, and then falls precipitously to practically 
 none of the shipments. For-Hire Truck and Private Truck have the highest 
-percentage of shipments that weighh greater than 70 pounds. Air Travel has some 
-packages up to about 70 pounds, and then falls to a very small percentage of 
-packages.
+percentage of shipments that weigh greater than 70 pounds. 
 
 ## R Libraries: The code in this repository assumes the following R libraries are installed:
 * ggplot2
